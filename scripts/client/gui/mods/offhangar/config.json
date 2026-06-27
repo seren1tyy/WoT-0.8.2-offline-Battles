@@ -1,0 +1,7 @@
+{
+    "nickname": "CzechPwMods",
+    "bot_name_prefix_allies": "Kokot_",
+    "bot_name_prefix_enemies": "Mamrd_",
+    "queue_wait_time_seconds": 7.0,
+    "loading_screen_time_seconds": 8.0
+}
