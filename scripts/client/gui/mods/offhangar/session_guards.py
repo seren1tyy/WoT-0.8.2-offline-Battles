@@ -555,14 +555,42 @@ def fix_offline_battle_crashes():
         from gui.Scaleform.BattleDispatcherInterface import BattleDispatcherInterface
         _orig_onFightButtonClick = BattleDispatcherInterface.onFightButtonClick
         def _patched_onFightButtonClick(self, actionName, prebattleID='', *args, **kwargs):
-            from debug_utils import LOG_DEBUG
+            from gui.mods.offhangar.logging import LOG_DEBUG
             try:
                 import BigWorld
                 from gui.mods.mod_offhangar import start_offline_random_from_hangar
                 from CurrentVehicle import g_currentVehicle
                 invID = g_currentVehicle.vehicle.inventoryId if g_currentVehicle.isPresent() else 1
-                LOG_DEBUG('OfflineBattle.bypass enqueue random')
-                start_offline_random_from_hangar(BigWorld.player(), invID)
+                LOG_DEBUG('OfflineBattle.bypass enqueue random', actionName, prebattleID, args, kwargs)
+                
+                # Flash sends (callbackId, mapId) which maps to (actionName, prebattleID) in this signature.
+                p = BigWorld.player()
+                m_id = None
+                
+                if isinstance(prebattleID, (int, float)):
+                    m_id = int(prebattleID)
+                elif isinstance(prebattleID, str) and prebattleID.isdigit():
+                    m_id = int(prebattleID)
+                
+                if m_id is not None:
+                    import ArenaType
+                    if not getattr(ArenaType, 'g_cache', None):
+                        ArenaType.init()
+                    if m_id in ArenaType.g_cache:
+                        setattr(p, '_offhangar_selected_mapId', m_id)
+                        LOG_DEBUG("Set map by ID:", m_id)
+                    else:
+                        if hasattr(p, '_offhangar_selected_mapId'):
+                            delattr(p, '_offhangar_selected_mapId')
+                elif isinstance(prebattleID, str) and prebattleID:
+                    setattr(p, '_offhangar_selected_mapId', prebattleID)
+                    LOG_DEBUG("Set map by name:", prebattleID)
+                else:
+                    # If this is a regular Battle button click, clear any saved map!
+                    if hasattr(p, '_offhangar_selected_mapId'):
+                        delattr(p, '_offhangar_selected_mapId')
+                
+                start_offline_random_from_hangar(p, invID)
                 return None
             except Exception as e:
                 LOG_DEBUG('OfflineBattle.bypass exception', e)
@@ -779,8 +807,9 @@ def patch_techtree():
         orig_dump = NationTreeData.dump
         def dump_hook(self):
             d = orig_dump(self)
-            if d.get("scrollIndex", -1) == -1 and len(d.get("nodes", [])) > 0:
-                d["scrollIndex"] = 0
+            if self.__class__.__name__ == 'NationTreeData':
+                if d.get("scrollIndex", -1) == -1 and len(d.get("nodes", [])) > 0:
+                    d["scrollIndex"] = 0
             return d
         NationTreeData.dump = dump_hook
     except Exception as e:

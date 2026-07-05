@@ -129,20 +129,38 @@ def build_offline_battle_context(player, selected_veh_inv_id, cmdName=''):
 	Important: keys/fields here are consumed by the arena/avatar stubs injected by the mod.
 	"""
 	map_id, map_name = random.choice(_MAP_POOL)
-	if 'tutorial' in cmdName.lower():
-		map_name = '01_karelia' # Fallback to Karelia for Bootcamp since 0.8.2 tutorial map is missing
-		map_id = 1
-
-	# Safely resolve map_id from ArenaType cache
+	
 	try:
 		import ArenaType
 		if not getattr(ArenaType, 'g_cache', None):
 			ArenaType.init()
-		for k, v in ArenaType.g_cache.iteritems():
-			if getattr(v, 'geometryName', '') == map_name:
-				map_id = k
-				break
+		
+		# Override if user selected a map via Demonstrator UI
+		sel_map_id = getattr(player, '_offhangar_selected_mapId', None)
+		if sel_map_id is not None:
+			if isinstance(sel_map_id, str):
+				for k, v in ArenaType.g_cache.iteritems():
+					gn = getattr(v, 'geometryName', '').lower()
+					# Sometimes it's '02_malinovka' and UI passes 'malinovka'
+					if sel_map_id.lower() in gn or gn in sel_map_id.lower():
+						map_id = k
+						map_name = getattr(v, 'geometryName', '')
+						break
+			elif sel_map_id in ArenaType.g_cache:
+				map_id = sel_map_id
+				map_name = ArenaType.g_cache[map_id].geometryName
+		
+		# If we still haven't resolved it, resolve the randomly chosen map_name
+		if map_id not in ArenaType.g_cache:
+			for k, v in ArenaType.g_cache.iteritems():
+				if getattr(v, 'geometryName', '') == map_name:
+					map_id = k
+					break
 	except: pass
+
+	if 'tutorial' in cmdName.lower():
+		map_name = '01_karelia' # Fallback to Karelia for Bootcamp since 0.8.2 tutorial map is missing
+		map_id = 1
 	allies, enemies = [], []
 
 	player_dbid = getattr(player, 'databaseID', 10000001) or 10000001
