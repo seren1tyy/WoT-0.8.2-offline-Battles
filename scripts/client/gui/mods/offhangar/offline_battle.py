@@ -3986,7 +3986,7 @@ def _try_spawn_battle_avatar_stub(player, cmdName):
 							_name = getattr(_extra, 'name', 'Unknown')
 							if _name not in ('leftTrackHealth', 'rightTrackHealth', 'gunHealth'):
 								saving_throw = 0.33
-								if 'ammo' in _name.lower(): saving_throw = 0.60
+								if 'ammo' in _name.lower(): saving_throw = 0.15
 								elif 'engine' in _name.lower(): saving_throw = 0.45
 								elif 'fuel' in _name.lower(): saving_throw = 0.45
 								elif 'track' in _name.lower(): saving_throw = 1.0
